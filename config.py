@@ -3,4 +3,4 @@ import os
 
 load_dotenv()
 
-API_KEY = os.getenv("ERA6M4P0953Y391B")
+API_KEY = os.getenv("ALPHA_VANTAGE_API_KEY")
