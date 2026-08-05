@@ -1,8 +1,21 @@
 import requests
 from config import API_KEY
 from fastapi import FastAPI
+from database import session, engine
+import users_models
+from sqlalchemy.orm import Session
 
 app = FastAPI()
+
+users_models.Base.metadata.create_all(bind=engine)      #creates users tables
+
+def get_db():
+    db = session()
+    try:
+        yield db        #waiting for the other function to use it
+    finally:
+        db.close()
+
 
 @app.get("/")
 def greet():
