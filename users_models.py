@@ -2,9 +2,9 @@ from sqlalchemy import Column, Integer, String, DateTime
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.sql import func
 
-Base = declarative_base()
+UserBase = declarative_base()
 
-class Users(Base):
+class Users(UserBase):
 
     __tablename__ = "users"
     id = Column(Integer, primary_key=True)      #don't need to index because pks are indexed automatically
