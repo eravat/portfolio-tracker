@@ -6,7 +6,7 @@ from database_models.users_model import Users
 from database_models.portfolios_model import Portfolios
 from database_models.transactions_model import Transactions
 from sqlalchemy.orm import Session
-from models import CreateUser, LoginUser
+from models import CreateUser, LoginUser, CreatePortfolio
 from auth import password_hasher, check_password, create_access_token, get_current_user, get_db
 from datetime import timedelta
 
@@ -51,6 +51,14 @@ def login(user: LoginUser, db: Session = Depends(get_db)):
 @app.get("/auth/info")
 def get_user_info(current_user: Users = Depends(get_current_user)):
     return current_user
+
+@app.post("/portfolio")
+def add_portfolio(user_portfolio: CreatePortfolio, current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
+    new_portfolio = Portfolios(portfolio_name=user_portfolio.portfolio_name, user_id=current_user.id)
+    db.add(new_portfolio)
+    db.commit()
+    return user_portfolio
+
 
 
 

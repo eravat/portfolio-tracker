@@ -7,3 +7,6 @@ class CreateUser(BaseModel):
 class LoginUser(BaseModel):
     email: str
     password: str
+
+class CreatePortfolio(BaseModel):
+    portfolio_name: str
