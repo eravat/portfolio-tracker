@@ -5,7 +5,7 @@ from jose import jwt, JWTError
 from config import SECRET_KEY
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from users_models import Users
+from database_models.users_model import Users
 from database import session
 
 

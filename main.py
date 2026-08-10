@@ -1,20 +1,19 @@
 import requests
 from config import API_KEY
 from fastapi import FastAPI, Depends, HTTPException
-from database import engine
-from users_models import Users, UserBase
+from database import engine, UserBase
+from database_models.users_model import Users
+from database_models.portfolios_model import Portfolios
+from database_models.transactions_model import Transactions
 from sqlalchemy.orm import Session
 from models import CreateUser, LoginUser
 from auth import password_hasher, check_password, create_access_token, get_current_user, get_db
 from datetime import timedelta
 
 
-
 app = FastAPI()
 
 UserBase.metadata.create_all(bind=engine)      #creates users tables
-
-
 
 
 @app.get("/")
@@ -52,5 +51,7 @@ def login(user: LoginUser, db: Session = Depends(get_db)):
 @app.get("/auth/info")
 def get_user_info(current_user: Users = Depends(get_current_user)):
     return current_user
+
+
 
 
