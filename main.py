@@ -6,14 +6,14 @@ from database_models.users_model import Users
 from database_models.portfolios_model import Portfolios
 from database_models.transactions_model import Transactions
 from sqlalchemy.orm import Session
-from models import CreateUser, LoginUser, CreatePortfolio
+from models import CreateUser, LoginUser, CreatePortfolio, CreateTransaction
 from auth import password_hasher, check_password, create_access_token, get_current_user, get_db
 from datetime import timedelta
 
 
 app = FastAPI()
 
-UserBase.metadata.create_all(bind=engine)      #creates users tables
+UserBase.metadata.create_all(bind=engine)      #creates tables
 
 
 @app.get("/")
@@ -46,7 +46,7 @@ def login(user: LoginUser, db: Session = Depends(get_db)):
         token = create_access_token(user_profile.id, timedelta(minutes=30)) 
         return {"access_token": token, "token_type": "bearer"}
 
-    raise HTTPException(status_code=401, detail="incorrect email or password")   #changed to an exception so client model knows request was not correctly answered
+    raise HTTPException(status_code=401, detail="Incorrect email or password")   #changed to an exception so client model knows request was not correctly answered
 
 @app.get("/auth/info")
 def get_user_info(current_user: Users = Depends(get_current_user)):
@@ -57,8 +57,23 @@ def add_portfolio(user_portfolio: CreatePortfolio, current_user: Users = Depends
     new_portfolio = Portfolios(portfolio_name=user_portfolio.portfolio_name, user_id=current_user.id)
     db.add(new_portfolio)
     db.commit()
-    return user_portfolio
+    db.refresh(new_portfolio)
+    return new_portfolio
 
+@app.post("/portfolio/{portfolio_id}/transactions")
+def add_transaction(portfolio_id: int, user_transaction: CreateTransaction, current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
+    portfolio = db.query(Portfolios).filter(portfolio_id==Portfolios.id).first()
+
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    if portfolio.user_id != current_user.id:
+        raise HTTPException(status_code=406, detail="Invalid portfolio id")
+
+    new_transaction = (Transactions(portfolio_id=portfolio_id, ticker=user_transaction.ticker, quantity=user_transaction.quantity, price=user_transaction.price, type=user_transaction.type, transaction_date=user_transaction.transaction_date))
+    db.add(new_transaction)
+    db.commit()
+    db.refresh(new_transaction)
+    return new_transaction
 
 
 
