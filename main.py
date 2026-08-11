@@ -10,22 +10,18 @@ from models import CreateUser, LoginUser, CreatePortfolio, CreateTransaction
 from auth import password_hasher, check_password, create_access_token, get_current_user, get_db
 from datetime import timedelta
 
-
 app = FastAPI()
 
 UserBase.metadata.create_all(bind=engine)      #creates tables
-
 
 @app.get("/")
 def greet():
     return "Portfolio Tracker"
 
-
 def get_stock(ticker: str):
     response = requests.get(f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={ticker}&interval=15min&apikey={API_KEY}")
     data = response.json()
     return data["Global Quote"]
-
 
 def get_price(ticker: str):    
     return get_stock(ticker)["05. price"]
@@ -37,7 +33,6 @@ def check_portfolio(portfolio_id: int, current_user: Users, db: Session):
     if portfolio.user_id != current_user.id:
         raise HTTPException(status_code=406, detail="Invalid portfolio id")
     return portfolio
-
 
 @app.post("/auth/register")
 def register(user: CreateUser, db: Session = Depends(get_db)):
