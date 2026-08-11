@@ -30,6 +30,14 @@ def get_stock(ticker: str):
 def get_price(ticker: str):    
     return get_stock(ticker)["05. price"]
 
+def check_portfolio(portfolio_id: int, current_user: Users, db: Session):
+    portfolio = db.query(Portfolios).filter(portfolio_id==Portfolios.id).first()  #this function prevents invalid portfolio ids from being input by client
+    if not portfolio:
+        raise HTTPException(status_code=404, detail="Portfolio not found")
+    if portfolio.user_id != current_user.id:
+        raise HTTPException(status_code=406, detail="Invalid portfolio id")
+    return portfolio
+
 
 @app.post("/auth/register")
 def register(user: CreateUser, db: Session = Depends(get_db)):
@@ -52,7 +60,7 @@ def login(user: LoginUser, db: Session = Depends(get_db)):
 def get_user_info(current_user: Users = Depends(get_current_user)):
     return current_user
 
-@app.post("/portfolio")
+@app.post("/portfolios")
 def add_portfolio(user_portfolio: CreatePortfolio, current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
     new_portfolio = Portfolios(portfolio_name=user_portfolio.portfolio_name, user_id=current_user.id)
     db.add(new_portfolio)
@@ -60,21 +68,22 @@ def add_portfolio(user_portfolio: CreatePortfolio, current_user: Users = Depends
     db.refresh(new_portfolio)
     return new_portfolio
 
-@app.post("/portfolio/{portfolio_id}/transactions")
+@app.post("/portfolios/{portfolio_id}/transactions")
 def add_transaction(portfolio_id: int, user_transaction: CreateTransaction, current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
-    portfolio = db.query(Portfolios).filter(portfolio_id==Portfolios.id).first()
-
-    if not portfolio:
-        raise HTTPException(status_code=404, detail="Portfolio not found")
-    if portfolio.user_id != current_user.id:
-        raise HTTPException(status_code=406, detail="Invalid portfolio id")
-
+    check_portfolio(portfolio_id, current_user, db)
     new_transaction = (Transactions(portfolio_id=portfolio_id, ticker=user_transaction.ticker, quantity=user_transaction.quantity, price=user_transaction.price, type=user_transaction.type, transaction_date=user_transaction.transaction_date))
     db.add(new_transaction)
     db.commit()
     db.refresh(new_transaction)
     return new_transaction
 
+@app.get("/portfolios")
+def get_portfolios(current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
+    portfolios = db.query(Portfolios).filter(current_user.id==Portfolios.user_id).all()
+    return portfolios
 
-
-
+@app.get("/portfolios/{portfolio_id}/transactions")
+def get_transactions(portfolio_id: int, current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
+    check_portfolio(portfolio_id, current_user, db)
+    transactions = db.query(Transactions).filter(portfolio_id==Transactions.portfolio_id).all()
+    return transactions
