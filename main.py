@@ -8,11 +8,13 @@ from database_models.transactions_model import Transactions
 from sqlalchemy.orm import Session
 from models import CreateUser, LoginUser, CreatePortfolio, CreateTransaction
 from auth import password_hasher, check_password, create_access_token, get_current_user, get_db
-from datetime import timedelta
+from datetime import timedelta, datetime
 
 app = FastAPI()
 
 UserBase.metadata.create_all(bind=engine)      #creates tables
+
+cache = {}
 
 @app.get("/")
 def greet():
@@ -82,3 +84,18 @@ def get_transactions(portfolio_id: int, current_user: Users = Depends(get_curren
     check_portfolio(portfolio_id, current_user, db)
     transactions = db.query(Transactions).filter(portfolio_id==Transactions.portfolio_id).all()
     return transactions
+
+@app.get("/stocks/{ticker}/price")
+def get_stock_price(ticker: str):
+    try:
+        if ticker in cache and ((datetime.now() - cache[ticker][1]).total_seconds() // 60) < 10:
+            price = float(cache[ticker][0])
+        else:
+            price = float(get_price(ticker))
+            cache[ticker] = [price, datetime.now()]
+    except KeyError:
+        raise HTTPException(status_code=404, detail="Ticker not found")
+    
+    return price
+  
+    
