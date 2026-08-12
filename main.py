@@ -13,8 +13,6 @@ from decimal import Decimal
 
 app = FastAPI()
 
-UserBase.metadata.create_all(bind=engine)      #creates tables
-
 cache = {}
 
 @app.get("/")
@@ -91,10 +89,15 @@ def calculate_ticker_res(db: Session, portfolio_id: int):
 
 @app.post("/auth/register")
 def register(user: CreateUser, db: Session = Depends(get_db)):
-    user.hashed_password = password_hasher(user.hashed_password)
-    db.add(Users(**user.model_dump()))
-    db.commit()
-    return user
+    hashed = password_hasher(user.password)
+    new_user = Users(email=user.email, hashed_password=hashed)
+    try:
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+    except:
+        raise HTTPException(status_code=409, detail="Email has already been entered.")
+    return new_user
     
 @app.post("/auth/login")
 def login(user: LoginUser, db: Session = Depends(get_db)):
@@ -121,6 +124,11 @@ def add_portfolio(user_portfolio: CreatePortfolio, current_user: Users = Depends
 @app.post("/portfolios/{portfolio_id}/transactions")
 def add_transaction(portfolio_id: int, user_transaction: CreateTransaction, current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
     check_portfolio(portfolio_id, current_user, db)
+    ticker_res = calculate_ticker_res(db, portfolio_id)
+    if user_transaction.type=="sell" and user_transaction.ticker not in ticker_res:
+        raise HTTPException(status_code=400, detail="No existing shares available.")
+    if user_transaction.type=="sell" and ticker_res[user_transaction.ticker]["total quantity"] < user_transaction.quantity:
+        raise HTTPException(status_code=400, detail="Not enough shares available.")
     new_transaction = (Transactions(portfolio_id=portfolio_id, ticker=user_transaction.ticker, quantity=user_transaction.quantity, price=user_transaction.price, type=user_transaction.type, transaction_date=user_transaction.transaction_date))
     db.add(new_transaction)
     db.commit()
