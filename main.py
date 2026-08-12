@@ -97,3 +97,54 @@ def get_stock_price(ticker: str):
         raise HTTPException(status_code=404, detail="Ticker not found")
     
     return price
+
+@app.get("/portfolio/{portfolio_id}/holdings")
+def get_holdings(portfolio_id: int, current_user: Users = Depends(get_current_user), db: Session = Depends(get_db)):
+    check_portfolio(portfolio_id, current_user, db)
+    ticker_dict = {}
+    transactions = db.query(Transactions).filter(portfolio_id==Transactions.portfolio_id).order_by(Transactions.transaction_date).all()
+    for transaction in transactions:
+        if transaction.ticker not in ticker_dict:
+            ticker_dict[transaction.ticker] = [transaction]
+        else:
+            ticker_dict[transaction.ticker].append(transaction)
+
+    ticker_res = {}
+    for ticker in ticker_dict:
+        total_quantity = 0
+        avg_price = 0
+        realised_PL = 0
+        temp_list = []
+        for transaction in ticker_dict[ticker]:
+            if transaction.type == "buy":
+                temp_list.append({"quantity": transaction.quantity, "price": transaction.price})
+                total_quantity += transaction.quantity
+            elif transaction.type == "sell":
+                total_quantity -= transaction.quantity
+                quantity = transaction.quantity
+                while quantity > 0:
+                    firstElement = temp_list[0]
+                    firstElement["quantity"] -= quantity
+                    if firstElement["quantity"] < 0:
+                        original_quantity = firstElement["quantity"] + quantity
+                        realised_PL += (transaction.price - firstElement["price"])*original_quantity
+                        quantity = abs(firstElement["quantity"])
+                        temp_list.pop(0)
+                    else:
+                        realised_PL += (transaction.price-firstElement["price"])*quantity
+                        quantity = 0
+        
+        if total_quantity > 0:
+            net_value=0
+            for tempDict in temp_list:
+                net_value += (tempDict["quantity"]*tempDict["price"])
+
+            avg_price = net_value/total_quantity
+
+        else:
+            avg_price = 0
+
+        ticker_res[ticker] = {"total quantity":total_quantity, "average price":avg_price, "realised P&L":realised_PL}
+
+    return ticker_res
+
