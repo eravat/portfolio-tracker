@@ -1,0 +1,1 @@
+# Marks project root for pytest; enables `from main import ...` in test files

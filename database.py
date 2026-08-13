@@ -1,7 +1,6 @@
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, declarative_base
 from config import DATABASE_URL
-from sqlalchemy.ext.declarative import declarative_base
 
 UserBase = declarative_base()
 

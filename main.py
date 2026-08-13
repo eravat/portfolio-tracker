@@ -15,9 +15,6 @@ app = FastAPI()
 
 cache = {}
 
-@app.get("/")
-def greet():
-    return "Portfolio Tracker"
 
 def get_stock(ticker: str):
     response = requests.get(f"https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol={ticker}&interval=15min&apikey={API_KEY}")
@@ -45,7 +42,7 @@ def get_quantity_and_RPL(transaction, temp_list, total_quantity, realised_PL):
         while quantity > 0:
             firstElement = temp_list[0]
             firstElement["quantity"] -= quantity
-            if firstElement["quantity"] < 0:
+            if firstElement["quantity"] <= 0:                               #thanks to pytest realised that before this was only < so if the total quantity of shares in temp list exactly matched the sell value the list wouldn't be returned as empty
                 original_quantity = firstElement["quantity"] + quantity
                 realised_PL += (transaction.price - firstElement["price"])*original_quantity
                 quantity = abs(firstElement["quantity"])
