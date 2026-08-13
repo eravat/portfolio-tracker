@@ -1,5 +1,5 @@
 from types import SimpleNamespace   #used to create arbritary values without defining a class
-from main import get_quantity_and_RPL
+from services.fifo_service import get_quantity_and_RPL
 import pytest
 
 fake_buy_transaction = SimpleNamespace(type="buy", quantity=10, price=100)
